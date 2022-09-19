@@ -1,0 +1,56 @@
+pipeline {
+    agent any
+    stages 
+    {
+        stage('Start') {
+            steps {
+                echo 'Hello'
+            }
+        }
+        
+        stage ('Deployment Canary') {
+            steps {
+                retry(3) {    
+                    build job: 'FOLDER/test-pipeline', parameters: [
+                    string(name: 'ENVIRONMENT', value: "DEVELOPMENT"),
+                    string(name: 'API_KEY', value: "123")
+                    ]
+                }
+            }
+        }        
+        
+        stage ('Deployment 1') {
+            steps {
+                
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    retry(3) {    
+                        build job: 'FOLDER/test-pipeline', parameters: [
+                        string(name: 'ENVIRONMENT', value: "FAIL"),
+                        string(name: 'API_KEY', value: "456")
+                        ]
+                    }
+                }
+            }
+        }
+
+        stage ('Deployment 2') {
+            steps {
+                
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    retry(3) {    
+                        build job: 'FOLDER/test-pipeline', parameters: [
+                        string(name: 'ENVIRONMENT', value: "PRODUCTION"),
+                        string(name: 'API_KEY', value: "789")
+                        ]
+                    }
+                }
+            }
+        }
+
+        stage('End') {
+            steps {
+                echo 'Bye'
+            }
+        }
+    }
+}
